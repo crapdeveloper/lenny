@@ -4,6 +4,8 @@
   "service": "app",
   "workspaceFolder": "/workspaces/lenny",
   "shutdownAction": "stopCompose",
+  "initializeCommand": "cp .env.example .env || true",
+  "runArgs": ["--env-file", "${workspaceFolder}/.env"],
   "customizations": {
     "vscode": {
       "extensions": [

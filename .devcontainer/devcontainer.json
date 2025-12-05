@@ -3,9 +3,6 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "development",
   "workspaceFolder": "/workspaces/lenny",
-  // Keep the container running in the background
-  // This is the default for a single container, but required for docker-compose
-  "overrideCommand": false,
   "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {

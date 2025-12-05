@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: tail -f /dev/null
     ports:
       # API
       - "8000:8000"

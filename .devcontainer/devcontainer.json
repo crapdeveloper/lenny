@@ -4,7 +4,6 @@
   "service": "development",
   "workspaceFolder": "/workspaces/lenny",
   "shutdownAction": "stopCompose",
-  "initializeCommand": "touch .env",
   "customizations": {
     "vscode": {
       "extensions": [

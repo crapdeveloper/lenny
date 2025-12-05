@@ -84,6 +84,7 @@
       "onAutoForward": "notify"
     }
   },
+  "initializeCommand": "touch ${localWorkspaceFolder}/.env 2>/dev/null || true",
   "postAttachCommand": "if [ ! -f .devcontainer-initialized ]; then ./scripts/dev-setup.sh && touch .devcontainer-initialized; else echo '🚀 Lenny devcontainer ready! Run: just run-all'; fi",
   "remoteUser": "vscode",
   "features": {

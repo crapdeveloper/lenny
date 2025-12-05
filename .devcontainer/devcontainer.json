@@ -1,0 +1,92 @@
+{
+  "name": "Lenny Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python - All official Microsoft extensions (free, 90M+ installs combined)
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        // Ruff - Fast Python linter (free, 5M+ installs)
+        "charliermarsh.ruff",
+        // JavaScript - ESLint & Prettier (free, 30M+ installs each)
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        // Docker (free, 25M+ installs)
+        "ms-azuretools.vscode-docker",
+        // SQLTools - Free PostgreSQL client (4M+ installs, MIT license)
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        // Redis - Simple free viewer (dunn.redis - 200K+ installs, MIT)
+        "dunn.redis",
+        // Just syntax highlighting (free, 50K+ installs)
+        "skellock.just",
+        // TOML support (free, 3M+ installs)
+        "tamasfe.even-better-toml",
+        // GitLens - Git supercharged (free tier, 30M+ installs)
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "window.title": "[Dev Container] ${dirty} ${activeEditorShort} ${rootName}",
+        "workbench.colorCustomizations": {
+          "titleBar.activeBackground": "#840c16",
+          "titleBar.activeForeground": "#FFFFFF",
+          "titleBar.inactiveBackground": "#5a0810"
+        },
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "[javascriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "eslint.workingDirectories": ["./frontend"],
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "forwardPorts": [3000, 8000, 5432, 6379, 18888],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (Vite)",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "Backend (FastAPI)",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    },
+    "18888": {
+      "label": "Aspire Dashboard",
+      "onAutoForward": "notify"
+    }
+  },
+  "postAttachCommand": "if [ ! -f .devcontainer-initialized ]; then ./scripts/dev-setup.sh && touch .devcontainer-initialized; else echo '🚀 Lenny devcontainer ready! Run: just run-all'; fi",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  }
+}

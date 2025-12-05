@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "refresh-dev": "python3 scripts/refresh_dev_instance.py",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "husky": "^8.0.0"
+  }
+}

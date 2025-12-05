@@ -1,0 +1,87 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      # Mount entire workspace - code resides inside container
+      - ..:/workspace:cached
+      # Persist bash history
+      - bash-history:/commandhistory
+      # Docker socket for docker CLI access
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: sleep infinity
+    environment:
+      # Database connection
+      - DATABASE_URL=postgresql+asyncpg://lenny:lenny@db/lenny
+      # Redis/Celery connection
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # OpenTelemetry (optional - for Aspire dashboard)
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+      - OTEL_SERVICE_NAME=lenny-dev
+      # Frontend API URL
+      - VITE_API_URL=http://localhost:8000
+    env_file:
+      - ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - lenny-network
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=lenny
+      - POSTGRES_PASSWORD=lenny
+      - POSTGRES_DB=lenny
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U lenny -d lenny" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lenny-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lenny-network
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
+    ports:
+      - "18888:18888"
+      - "4317:18889"
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+    networks:
+      - lenny-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  bash-history:
+
+
+networks:
+  lenny-network:
+    driver: bridge

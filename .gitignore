@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+.pdm-python
+.idea/
+.vscode/
+node_modules/
+postgres_data/
+.env
+.devcontainer-initialized

@@ -1,0 +1,19 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run Python pre-commit hooks (if available)
+VENV_PRECOMMIT=".venv/bin/pre-commit"
+if [ -x "$VENV_PRECOMMIT" ]; then
+    "$VENV_PRECOMMIT" run --all-files || true
+elif command -v pre-commit >/dev/null 2>&1; then
+    pre-commit run --all-files || true
+else
+    echo "pre-commit not found; run 'just backend-venv' to create .venv and install pre-commit, or install pre-commit globally"
+fi
+
+# Run frontend lint-staged via `just` if present, else call lint-staged directly in frontend
+if command -v just >/dev/null 2>&1; then
+    just pre-commit
+else
+    cd frontend && npx --no-install lint-staged || true
+fi

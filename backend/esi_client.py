@@ -1,14 +1,17 @@
 import collections
 import collections.abc
+
 # Monkey patch for pyswagger/esipy compatibility with Python 3.10+
 collections.MutableMapping = collections.abc.MutableMapping
 collections.Mapping = collections.abc.Mapping
 
-from esipy import EsiApp, EsiSecurity, EsiClient
-from config import settings
-import requests
 from datetime import datetime, timedelta
 from typing import Optional
+
+import requests
+from esipy import EsiApp, EsiClient, EsiSecurity
+
+from backend.config import settings
 
 # EVE SSO token endpoint (v2)
 _EVE_TOKEN_URL = "https://login.eveonline.com/v2/oauth/token"
@@ -22,14 +25,11 @@ esi_security = EsiSecurity(
     redirect_uri=settings.EVE_CALLBACK_URL,
     client_id=settings.EVE_CLIENT_ID,
     secret_key=settings.EVE_CLIENT_SECRET,
-    headers={'User-Agent': 'Lenny/1.0'}
+    headers={"User-Agent": "Lenny/1.0"},
 )
 
 # Initialize EsiClient
-esi_client = EsiClient(
-    security=esi_security,
-    headers={'User-Agent': 'Lenny/1.0'}
-)
+esi_client = EsiClient(security=esi_security, headers={"User-Agent": "Lenny/1.0"})
 
 
 def refresh_tokens(refresh_token: str) -> dict:
@@ -84,7 +84,9 @@ async def ensure_valid_token(user, db_session) -> None:
         try:
             tokens = refresh_tokens(getattr(user, "refresh_token", None))
         except Exception as e:
-            raise RuntimeError(f"Failed to refresh token for user {getattr(user, 'character_id', '?')}: {e}")
+            raise RuntimeError(
+                f"Failed to refresh token for user {getattr(user, 'character_id', '?')}: {e}"
+            )
 
         # Update user fields and commit
         user.access_token = tokens.get("access_token")
@@ -108,6 +110,9 @@ async def ensure_valid_token(user, db_session) -> None:
 def auth_header_for_user(user) -> dict:
     """Return Authorization header for a user model instance."""
     token = getattr(user, "access_token", None)
+    if not token:
+        return {}
+    return {"Authorization": f"Bearer {token}"}
     if not token:
         return {}
     return {"Authorization": f"Bearer {token}"}

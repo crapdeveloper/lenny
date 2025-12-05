@@ -14,10 +14,6 @@ from celery import Celery
 from celery.schedules import crontab
 from celery.signals import worker_process_init
 from celery.utils.log import get_task_logger
-from config import settings
-from database import SessionLocal
-from esi_client import esi_app, esi_client
-from models import MarketHistory, MarketOrder, RegionEtag, RegionFetchStatus, SdeRegion
 
 # OpenTelemetry Imports
 from opentelemetry import trace
@@ -26,9 +22,20 @@ from opentelemetry.instrumentation.celery import CeleryInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from sde_service import run_sde_update
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+
+from backend.config import settings
+from backend.database import SessionLocal
+from backend.esi_client import esi_app, esi_client
+from backend.models import (
+    MarketHistory,
+    MarketOrder,
+    RegionEtag,
+    RegionFetchStatus,
+    SdeRegion,
+)
+from backend.sde_service import run_sde_update
 
 
 # Setup OpenTelemetry
@@ -40,9 +47,7 @@ def init_celery_tracing(*args, **kwargs):
         )
         trace.set_tracer_provider(TracerProvider(resource=resource))
 
-        otlp_exporter = OTLPSpanExporter(
-            endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-        )
+        otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
         span_processor = BatchSpanProcessor(otlp_exporter)
         trace.get_tracer_provider().add_span_processor(span_processor)
 
@@ -206,8 +211,7 @@ def fetch_market_orders(region_id: int, type_id: int = None):
 
         # Optimization: Pre-fetch all ETags for this region to reduce DB queries
         existing_etags = {
-            row.page: row.etag
-            for row in db.query(RegionEtag).filter_by(region_id=region_id).all()
+            row.page: row.etag for row in db.query(RegionEtag).filter_by(region_id=region_id).all()
         }
 
         # Initial request for page 1
@@ -220,9 +224,7 @@ def fetch_market_orders(region_id: int, type_id: int = None):
         headers = {}
         if current_etag:
             headers["If-None-Match"] = _normalize_etag_for_request(current_etag)
-            print(
-                f"Using ETag {headers['If-None-Match']} for Region {region_id} Page 1"
-            )
+            print(f"Using ETag {headers['If-None-Match']} for Region {region_id} Page 1")
 
         op = esi_app.op["get_markets_region_id_orders"](**kwargs)
         res = esi_client.request(op, headers=headers)
@@ -253,9 +255,7 @@ def fetch_market_orders(region_id: int, type_id: int = None):
                 f"Error fetching orders for Region {region_id} Page 1: {res.status} - {res.data}"
             )
             # Mark fetch as failed
-            stmt = insert(RegionFetchStatus).values(
-                region_id=region_id, last_fetch_success=False
-            )
+            stmt = insert(RegionFetchStatus).values(region_id=region_id, last_fetch_success=False)
             stmt = stmt.on_conflict_do_update(
                 index_elements=["region_id"], set_={"last_fetch_success": False}
             )
@@ -308,7 +308,8 @@ def fetch_market_orders(region_id: int, type_id: int = None):
             # ON COMMIT DROP ensures it's cleaned up automatically
             # Using raw connection from SQLAlchemy session
             with db.connection().connection.cursor() as cursor:
-                cursor.execute(f"""
+                cursor.execute(
+                    f"""
                 CREATE TEMP TABLE {temp_table_name} (
                     order_id BIGINT PRIMARY KEY,
                     type_id INTEGER,
@@ -323,7 +324,8 @@ def fetch_market_orders(region_id: int, type_id: int = None):
                     location_id BIGINT,
                     updated_at TIMESTAMP WITH TIME ZONE
                 ) ON COMMIT DROP;
-                """)
+                """
+                )
 
                 # Use an in-memory string buffer for CSV data, tab-delimited
                 f = io.StringIO()
@@ -439,15 +441,11 @@ def fetch_market_orders(region_id: int, type_id: int = None):
         db.commit()
 
     except Exception:
-        logger.error(
-            f"Error in fetch_market_orders for region {region_id}", exc_info=True
-        )
+        logger.error(f"Error in fetch_market_orders for region {region_id}", exc_info=True)
         db.rollback()
         # Mark fetch as failed
         try:
-            stmt = insert(RegionFetchStatus).values(
-                region_id=region_id, last_fetch_success=False
-            )
+            stmt = insert(RegionFetchStatus).values(region_id=region_id, last_fetch_success=False)
             stmt = stmt.on_conflict_do_update(
                 index_elements=["region_id"], set_={"last_fetch_success": False}
             )
@@ -514,9 +512,7 @@ def fetch_region_history(region_id: int):
             return
 
         for page in range(2, pages + 1):
-            op = esi_app.op["get_markets_region_id_types"](
-                region_id=region_id, page=page
-            )
+            op = esi_app.op["get_markets_region_id_types"](region_id=region_id, page=page)
             res = esi_client.request(op)
             if res.status == 200:
                 type_ids.update(res.data)
@@ -574,15 +570,14 @@ def fetch_region_history(region_id: int):
                 if res.status == 200:
                     history_data = res.data
                     # Filter for last 90 days
-                    recent_history = [
-                        h for h in history_data if h.date.v >= cutoff_date
-                    ]
+                    recent_history = [h for h in history_data if h.date.v >= cutoff_date]
 
                     if recent_history:
                         # Use a temporary table and COPY for bulk insert
                         temp_table_name = "temp_market_history"
                         with db.connection().connection.cursor() as cursor:
-                            cursor.execute(f"""
+                            cursor.execute(
+                                f"""
                             CREATE TEMP TABLE {temp_table_name} (
                                 region_id INTEGER,
                                 type_id INTEGER,
@@ -593,7 +588,8 @@ def fetch_region_history(region_id: int):
                                 order_count BIGINT,
                                 volume BIGINT
                             ) ON COMMIT DROP;
-                            """)
+                            """
+                            )
 
                             f = io.StringIO()
                             writer = csv.writer(f, delimiter="\t")
@@ -648,8 +644,6 @@ def fetch_region_history(region_id: int):
                 db.rollback()
 
     except Exception:
-        logger.error(
-            f"Error in fetch_region_history for region {region_id}", exc_info=True
-        )
+        logger.error(f"Error in fetch_region_history for region {region_id}", exc_info=True)
     finally:
         db.close()

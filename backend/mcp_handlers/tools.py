@@ -1,8 +1,21 @@
-from sqlalchemy import select, and_, func, desc, cast, Float, text, inspect
-from database import AsyncSessionLocal, sync_engine
-from models import SdeRegion, SdeType, MarketOrder, SdeSolarSystem, SdeSolarSystemJump, SdeStation, User
-from esi_client import esi_app, esi_client, ensure_valid_token, auth_header_for_user
+from sqlalchemy import Float, and_, cast, desc, func, inspect, select, text
 
+from backend.database import AsyncSessionLocal, sync_engine
+from backend.esi_client import (
+    auth_header_for_user,
+    ensure_valid_token,
+    esi_app,
+    esi_client,
+)
+from backend.models import (
+    MarketOrder,
+    SdeRegion,
+    SdeSolarSystem,
+    SdeSolarSystemJump,
+    SdeStation,
+    SdeType,
+    User,
+)
 
 SCHEMA_DESCRIPTIONS = {
     "sde_types": {
@@ -99,15 +112,15 @@ def inspect_database_schema():
     """
     inspector = inspect(sync_engine)
     schema_info = {}
-    
+
     for table_name in inspector.get_table_names():
         columns = []
         table_desc = SCHEMA_DESCRIPTIONS.get(table_name, {})
-        
+
         for column in inspector.get_columns(table_name):
             col_name = column["name"]
             col_desc = table_desc.get("columns", {}).get(col_name, "")
-            
+
             columns.append({
                 "name": col_name,
                 "type": str(column["type"]),
@@ -115,12 +128,12 @@ def inspect_database_schema():
                 "primary_key": column.get("primary_key", False),
                 "description": col_desc
             })
-        
+
         schema_info[table_name] = {
             "description": table_desc.get("description", ""),
             "columns": columns
         }
-        
+
     return schema_info
 
 async def run_sql_query(query: str):
@@ -166,7 +179,7 @@ async def get_market_orders(region_id: int, type_id: int, is_buy_order: bool = N
         )
         if is_buy_order is not None:
             query = query.where(MarketOrder.is_buy_order == (1 if is_buy_order else 0))
-            
+
         result = await session.execute(query)
         orders = result.scalars().all()
         return [
@@ -189,16 +202,16 @@ async def get_top_orders(region_id: int, limit: int = 10, is_buy_order: bool = N
         ).where(
             MarketOrder.region_id == region_id
         )
-        
+
         if is_buy_order is not None:
             query = query.where(MarketOrder.is_buy_order == (1 if is_buy_order else 0))
-            
+
         # Sort by price descending (cast to Float because price is Text)
         query = query.order_by(desc(cast(MarketOrder.price, Float))).limit(limit)
-            
+
         result = await session.execute(query)
         rows = result.all()
-        
+
         return [
             {
                 "order_id": o.order_id,
@@ -222,7 +235,7 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
         start_system = result.scalars().first()
         if not start_system:
             return {"error": f"System '{start_system_name}' not found."}
-        
+
         start_system_id = start_system.system_id
 
         # 2. Find Neighbors (BFS)
@@ -231,47 +244,47 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
         # Let's fetch all jumps once (it's not that big, ~10k rows)
         jumps_result = await session.execute(select(SdeSolarSystemJump.from_solar_system_id, SdeSolarSystemJump.to_solar_system_id))
         all_jumps = jumps_result.all()
-        
+
         adj = {}
         for from_sys, to_sys in all_jumps:
             if from_sys not in adj: adj[from_sys] = []
             adj[from_sys].append(to_sys)
-            
+
         # BFS
         visited = {start_system_id: 0}
         queue = [start_system_id]
         valid_systems = {start_system_id}
-        
+
         while queue:
             current = queue.pop(0)
             dist = visited[current]
             if dist >= max_jumps:
                 continue
-            
+
             if current in adj:
                 for neighbor in adj[current]:
                     if neighbor not in visited:
                         visited[neighbor] = dist + 1
                         valid_systems.add(neighbor)
                         queue.append(neighbor)
-        
+
         valid_system_ids = list(valid_systems)
 
         # 3. Find Arbitrage
         # Buy from Sell Orders in Start System (or nearby? Prompt says "I am in Jita", implies buying there)
         # Sell to Buy Orders in Destination Systems (within range)
-        
+
         # We need to map MarketOrder.location_id to System ID.
         # Join MarketOrder -> SdeStation -> SdeSolarSystem
         # Note: This ignores player structures for now as they aren't in SDE.
-        
+
         # Query: Find Sell Orders (is_buy_order=0) in Start System (Jita)
         # We assume the user buys from the cheapest sell order in the current system.
-        
+
         # Step 3a: Get Sell Orders in Start System
         sell_orders_query = select(
-            MarketOrder.type_id, 
-            MarketOrder.price, 
+            MarketOrder.type_id,
+            MarketOrder.price,
             MarketOrder.volume_remain
         ).join(
             SdeStation, MarketOrder.location_id == SdeStation.station_id
@@ -279,10 +292,10 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
             SdeStation.solar_system_id == start_system_id,
             MarketOrder.is_buy_order == 0 # Selling to us
         )
-        
+
         sell_orders_res = await session.execute(sell_orders_query)
         sell_orders = sell_orders_res.all()
-        
+
         # Group by Type to find min price
         best_sell_prices = {} # type_id -> {price, volume}
         for type_id, price_str, vol in sell_orders:
@@ -311,38 +324,38 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
         buy_orders = buy_orders_res.all()
 
         opportunities = []
-        
+
         for type_id, price_str, vol, sys_id, station_name in buy_orders:
             if type_id not in best_sell_prices:
                 continue
-                
+
             buy_price = float(price_str)
             sell_info = best_sell_prices[type_id]
             sell_price = sell_info['price']
-            
+
             if buy_price <= sell_price:
                 continue
-                
+
             # Calculate Profit
             margin = buy_price - sell_price
             tradeable_vol = min(vol, sell_info['volume'])
-            
+
             # Check Budget
             total_cost = sell_price * tradeable_vol
             if total_cost > budget:
                 # Adjust volume to budget
                 tradeable_vol = int(budget / sell_price)
                 total_cost = sell_price * tradeable_vol
-            
+
             if tradeable_vol <= 0:
                 continue
-                
+
             total_profit = margin * tradeable_vol
-            
+
             # Get Type Name
             type_res = await session.execute(select(SdeType.name).where(SdeType.type_id == type_id))
             type_name = type_res.scalar()
-            
+
             opportunities.append({
                 "item": type_name,
                 "buy_from": start_system_name,
@@ -354,10 +367,10 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
                 "total_profit": total_profit,
                 "jumps": visited[sys_id]
             })
-            
+
         # Sort by profit
         opportunities.sort(key=lambda x: x['total_profit'], reverse=True)
-        
+
         return opportunities[:limit]
 
 async def call_esi(operation_id: str, params: dict = None):
@@ -366,10 +379,10 @@ async def call_esi(operation_id: str, params: dict = None):
     """
     if params is None:
         params = {}
-    
+
     if operation_id not in esi_app.op:
         return {"error": f"Operation '{operation_id}' not found in ESI swagger spec."}
-    
+
     try:
         # Create the operation
         # Note: esipy/bravado validates parameters here
@@ -415,10 +428,10 @@ async def call_esi(operation_id: str, params: dict = None):
                     headers.update(auth_header_for_user(user))
                     # Retry the request
                     response = esi_client.request(operation, headers=headers)
-        
+
         if 200 <= response.status < 300:
             data = response.data
-            
+
             # Helper to convert Bravado models to dicts
             def serialize(obj):
                 if hasattr(obj, 'to_dict'):
@@ -438,7 +451,7 @@ async def call_esi(operation_id: str, params: dict = None):
                 return serialize(data)
         else:
             return {"error": f"ESI status {response.status}", "content": str(response.data)}
-            
+
     except Exception as e:
         return {"error": f"ESI Request failed: {str(e)}"}
 
@@ -452,28 +465,28 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
         origin_sys = res_origin.scalars().first()
         if not origin_sys:
             return {"error": f"Origin system '{origin_name}' not found."}
-            
+
         # Resolve Destination
         res_dest = await session.execute(select(SdeSolarSystem).where(SdeSolarSystem.name == destination_name))
         dest_sys = res_dest.scalars().first()
         if not dest_sys:
             return {"error": f"Destination system '{destination_name}' not found."}
-            
+
         origin_id = origin_sys.system_id
         destination_id = dest_sys.system_id
-        
+
     # Call ESI
     params = {
         "origin": origin_id,
         "destination": destination_id,
         "flag": preference
     }
-    
+
     route_ids = await call_esi("get_route_origin_destination", params)
-    
+
     if isinstance(route_ids, dict) and "error" in route_ids:
         return route_ids
-        
+
     if not route_ids:
         return {
             "origin": origin_name,
@@ -552,6 +565,19 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
                 elif security_mode == "threshold":
                     if sec is None or float(sec) < security_threshold:
                         route_ok = False
+                else:
+                    # string modes
+                    if cls != security_mode:
+                        route_ok = False
+
+        return {
+            "origin": origin_name,
+            "destination": destination_name,
+            "jumps": len(route_ids),
+            "route": route_names,
+            "route_security": route_security,
+            "route_ok": route_ok
+        }
                 else:
                     # string modes
                     if cls != security_mode:

@@ -1,4 +1,3 @@
-from database import Base
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -15,6 +14,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
+from backend.database import Base
 
 
 class User(Base):
@@ -163,9 +164,7 @@ class MarketHistory(Base):
     volume = Column(BigInteger)
 
     __table_args__ = (
-        UniqueConstraint(
-            "region_id", "type_id", "date", name="uq_market_history_region_type_date"
-        ),
+        UniqueConstraint("region_id", "type_id", "date", name="uq_market_history_region_type_date"),
     )
 
 
@@ -175,9 +174,7 @@ class RegionEtag(Base):
     region_id = Column(Integer, primary_key=True)
     page = Column(Integer, primary_key=True)
     etag = Column(String)
-    last_updated = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class RegionFetchStatus(Base):
@@ -195,4 +192,5 @@ class TaskLock(Base):
 
     task_id = Column(String, primary_key=True)
     locked = Column(Boolean, default=False, nullable=False)
+    locked_at = Column(DateTime(timezone=True))
     locked_at = Column(DateTime(timezone=True))

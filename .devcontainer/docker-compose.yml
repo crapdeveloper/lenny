@@ -1,28 +1,20 @@
 version: '3.8'
 
 services:
-  backend:
+  development:
     build:
       context: .
       dockerfile: backend/Dockerfile
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    volumes:
-      - ./backend:/app
     ports:
+      # API
       - "8000:8000"
-    env_file:
-      - path: ./.env
-        optional: true
+      # Web Client
+      - "3000:5173"
     depends_on:
       - db
       - redis
       - aspire-dashboard
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://lenny:lenny@db/lenny
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
-      - OTEL_SERVICE_NAME=lenny-backend
 
   frontend:
     build:

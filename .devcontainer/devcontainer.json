@@ -2,7 +2,7 @@
   "name": "Lenny Development",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/lenny",
   "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {
@@ -39,7 +39,7 @@
           "titleBar.activeForeground": "#FFFFFF",
           "titleBar.inactiveBackground": "#5a0810"
         },
-        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.defaultInterpreterPath": "/workspaces/lenny/.venv/bin/python",
         "python.analysis.typeCheckingMode": "basic",
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter",

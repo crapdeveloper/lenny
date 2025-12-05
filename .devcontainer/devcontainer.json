@@ -1,6 +1,6 @@
 {
   "name": "Lenny Development",
-  "dockerComposeFile": ".devcontainer/docker-compose.yml",
+  "dockerComposeFile": "docker-compose.yml",
   "service": "development",
   "workspaceFolder": "/workspaces/lenny",
   "shutdownAction": "stopCompose",

@@ -1,5 +1,6 @@
 #!/bin/sh
 set -ex
 echo "Formatting backend and frontend..."
-make -C backend format || true
+pdm run black backend
+pdm run isort backend
 cd frontend && npm run format || true

@@ -167,7 +167,7 @@ case "$init_db" in
 	*)
 		echo ""
 		echo "🗄️  Running database migrations..."
-		pdm run -C backend alembic upgrade head
+		pdm run alembic -c backend/alembic.ini upgrade head
 		echo ""
 		echo "🗄️  Loading SDE data..."
 		pdm run python backend/init_database.py
@@ -222,7 +222,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Starting infrastructure services (db, redis, aspire-dashboard)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-docker compose -f docker-compose.yml up -d db redis aspire-dashboard
+docker compose -f .devcontainer/docker-compose.yml up -d db redis aspire-dashboard
 echo "✅ Infrastructure services started!"
 echo ""
 echo "Run 'just run-all' or 'docker compose up -d' to start all app services."

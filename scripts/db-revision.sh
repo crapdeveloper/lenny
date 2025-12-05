@@ -1,4 +1,4 @@
 #!/bin/sh
 set -ex
 echo "Creating new migration revision..."
-cd backend && alembic revision --autogenerate -m "$1"
+pdm run alembic -c backend/alembic.ini revision --autogenerate -m "$1"

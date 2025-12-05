@@ -23,7 +23,8 @@ services:
       # Frontend API URL
       - VITE_API_URL=http://localhost:8000
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
     depends_on:
       db:
         condition: service_healthy

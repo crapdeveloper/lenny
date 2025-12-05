@@ -167,10 +167,10 @@ case "$init_db" in
 	*)
 		echo ""
 		echo "🗄️  Running database migrations..."
-		cd backend && alembic upgrade head && cd ..
+		pdm run -C backend alembic upgrade head
 		echo ""
 		echo "🗄️  Loading SDE data..."
-		cd backend && python init_database.py && cd ..
+		pdm run python backend/init_database.py
 		echo "✅ Database initialized"
 		;;
 esac

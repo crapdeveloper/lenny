@@ -16,41 +16,6 @@ services:
       - redis
       - aspire-dashboard
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "3000:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-    depends_on:
-      - backend
-
-  worker:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    command: celery -A worker.celery_app worker --loglevel=info -B
-    volumes:
-      - ./backend:/app
-    env_file:
-      - path: ./.env
-        optional: true
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://lenny:lenny@db/lenny
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
-      - OTEL_SERVICE_NAME=lenny-worker
-    depends_on:
-      - db
-      - redis
-      - aspire-dashboard
-
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
     ports:
@@ -74,6 +39,3 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-
-volumes:
-  postgres_data:

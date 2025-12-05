@@ -84,6 +84,7 @@
       "onAutoForward": "notify"
     }
   },
+  "postCreateCommand": "sudo chown -R vscode:vscode . && chmod +x scripts/dev-setup.sh",
   "postAttachCommand": "if [ ! -f .devcontainer-initialized ]; then ./scripts/dev-setup.sh && touch .devcontainer-initialized; else echo '🚀 Lenny devcontainer ready! Run: just run-all'; fi",
   "remoteUser": "vscode",
   "features": {

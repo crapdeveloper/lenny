@@ -9,6 +9,14 @@ else
 	echo "Running in non-interactive mode (devcontainer setup)"
 fi
 
+# Ensure workspace permissions are correct (fix for Docker volume permission issues)
+# This is necessary because sometimes volumes/bind mounts are owned by root
+if [ ! -w . ]; then
+	echo "🔧 Current directory is not writable. Fixing permissions..."
+	sudo chown -R "$(whoami)" .
+	echo "✅ Permissions fixed"
+fi
+
 echo "╔══════════════════════════════════════════════════════════════════╗"
 echo "║           🚀 Lenny Development Environment Setup 🚀              ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"

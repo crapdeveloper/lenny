@@ -8,5 +8,5 @@ build/
 .vscode/
 node_modules/
 postgres_data/
-.env.murray
+.env
 .devcontainer-initialized

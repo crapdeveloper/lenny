@@ -11,7 +11,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - .env?
     depends_on:
       - db
       - redis
@@ -45,7 +45,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - .env
+      - .env?
     environment:
       - DATABASE_URL=postgresql+asyncpg://lenny:lenny@db/lenny
       - CELERY_BROKER_URL=redis://redis:6379/0

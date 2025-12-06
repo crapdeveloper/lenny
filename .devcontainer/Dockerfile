@@ -13,8 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim \
     sudo \
     gnupg2 \
+    net-tools \
+    iputils-ping \
+    procps \
     # For Python native extensions
     build-essential \
+    htop \
     # For psycopg2, the Python PostgreSQL adapter
     libpq-dev \
     ca-certificates \

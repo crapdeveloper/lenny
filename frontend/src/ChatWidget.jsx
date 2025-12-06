@@ -1,23 +1,46 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Affix, ActionIcon, Card, ScrollArea, TextInput, Button, Stack, Group, Text, Loader, Transition, Table, Code, Divider, UnstyledButton, Modal } from '@mantine/core';
+import {
+  Affix,
+  ActionIcon,
+  Card,
+  ScrollArea,
+  TextInput,
+  Button,
+  Stack,
+  Group,
+  Text,
+  Loader,
+  Transition,
+  Table,
+  Code,
+  Divider,
+  UnstyledButton,
+  Modal,
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const MarkdownComponents = {
-  table: (props) => <Table highlightOnHover withTableBorder withColumnBorders bg="white" c="black" {...props} />,
+  table: (props) => (
+    <Table highlightOnHover withTableBorder withColumnBorders bg="white" c="black" {...props} />
+  ),
   thead: (props) => <Table.Thead bg="gray.2" c="black" {...props} />,
   tbody: (props) => <Table.Tbody c="black" {...props} />,
   tr: (props) => <Table.Tr {...props} />,
   th: (props) => <Table.Th c="black" {...props} />,
   td: (props) => <Table.Td c="black" {...props} />,
-  code: ({node, inline, className, children, ...props}) => {
+  code: ({ node, inline, className, children, ...props }) => {
     return inline ? (
-      <Code c="black" bg="gray.2" {...props}>{children}</Code>
+      <Code c="black" bg="gray.2" {...props}>
+        {children}
+      </Code>
     ) : (
-      <Code block c="black" bg="gray.0" {...props}>{children}</Code>
+      <Code block c="black" bg="gray.0" {...props}>
+        {children}
+      </Code>
     );
-  }
+  },
 };
 
 const ChatWidget = ({ characterId }) => {
@@ -28,9 +51,10 @@ const ChatWidget = ({ characterId }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [deleteId, setDeleteId] = useState(null);
-  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] =
+    useDisclosure(false);
 
   const [chatPosition, setChatPosition] = useState({ bottom: 20, right: 20 });
   const [resetKey, setResetKey] = useState(0);
@@ -41,7 +65,7 @@ const ChatWidget = ({ characterId }) => {
     if (!isDragging.current) return;
     setChatPosition({
       top: e.clientY - dragOffset.current.y,
-      left: e.clientX - dragOffset.current.x
+      left: e.clientX - dragOffset.current.x,
     });
   }, []);
 
@@ -54,19 +78,19 @@ const ChatWidget = ({ characterId }) => {
 
   const handleMouseDown = (e) => {
     if (e.target.closest('button') || e.target.closest('.mantine-ActionIcon-root')) return;
-    
+
     isDragging.current = true;
     const card = e.currentTarget.closest('.mantine-Card-root');
     const rect = card.getBoundingClientRect();
-    
+
     dragOffset.current = {
       x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      y: e.clientY - rect.top,
     };
-    
+
     setChatPosition({
       top: rect.top,
-      left: rect.left
+      left: rect.left,
     });
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -76,7 +100,7 @@ const ChatWidget = ({ characterId }) => {
 
   const handleResetPosition = () => {
     setChatPosition({ bottom: 20, right: 20 });
-    setResetKey(prev => prev + 1);
+    setResetKey((prev) => prev + 1);
   };
 
   const toggleChat = () => setIsOpen(!isOpen);
@@ -91,7 +115,7 @@ const ChatWidget = ({ characterId }) => {
     if (!characterId) return;
     try {
       const res = await fetch('http://localhost:8000/chat/conversations', {
-        headers: { 'X-Character-Id': characterId }
+        headers: { 'X-Character-Id': characterId },
       });
       if (res.ok) {
         const data = await res.json();
@@ -108,11 +132,11 @@ const ChatWidget = ({ characterId }) => {
     try {
       const res = await fetch('http://localhost:8000/chat/conversations', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-Character-Id': characterId 
+          'X-Character-Id': characterId,
         },
-        body: JSON.stringify({ title: 'New Chat' })
+        body: JSON.stringify({ title: 'New Chat' }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -134,7 +158,7 @@ const ChatWidget = ({ characterId }) => {
     setCurrentConversationId(id);
     try {
       const res = await fetch(`http://localhost:8000/chat/conversations/${id}/messages`, {
-        headers: { 'X-Character-Id': characterId }
+        headers: { 'X-Character-Id': characterId },
       });
       if (res.ok) {
         const data = await res.json();
@@ -159,13 +183,13 @@ const ChatWidget = ({ characterId }) => {
     try {
       const res = await fetch(`http://localhost:8000/chat/conversations/${deleteId}`, {
         method: 'DELETE',
-        headers: { 'X-Character-Id': characterId }
+        headers: { 'X-Character-Id': characterId },
       });
       if (res.ok) {
-        setConversations(prev => prev.filter(c => c.id !== deleteId));
+        setConversations((prev) => prev.filter((c) => c.id !== deleteId));
         if (currentConversationId === deleteId) {
-            setView('list');
-            setCurrentConversationId(null);
+          setView('list');
+          setCurrentConversationId(null);
         }
       }
     } catch (e) {
@@ -181,7 +205,7 @@ const ChatWidget = ({ characterId }) => {
     if (!input.trim() || !characterId || !currentConversationId) return;
 
     const userMessage = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -190,11 +214,11 @@ const ChatWidget = ({ characterId }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Character-Id': characterId
+          'X-Character-Id': characterId,
         },
         body: JSON.stringify({
           conversation_id: currentConversationId,
-          message: input
+          message: input,
         }),
       });
 
@@ -203,10 +227,13 @@ const ChatWidget = ({ characterId }) => {
       }
 
       const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.content }]);
     } catch (error) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error." }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Sorry, I encountered an error.' },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -214,11 +241,20 @@ const ChatWidget = ({ characterId }) => {
 
   return (
     <>
-      <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Delete Conversation" centered>
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete Conversation"
+        centered
+      >
         <Text>Are you sure you want to delete this conversation?</Text>
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={closeDeleteModal}>Cancel</Button>
-          <Button color="red" onClick={handleDelete}>Delete</Button>
+          <Button variant="default" onClick={closeDeleteModal}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleDelete}>
+            Delete
+          </Button>
         </Group>
       </Modal>
 
@@ -235,8 +271,20 @@ const ChatWidget = ({ characterId }) => {
               h={60}
               w={60}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: 30, height: 30 }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                style={{ width: 30, height: 30 }}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
               </svg>
             </ActionIcon>
           )}
@@ -248,7 +296,15 @@ const ChatWidget = ({ characterId }) => {
           {(transitionStyles) => (
             <Card
               key={resetKey}
-              style={{ ...transitionStyles, resize: 'both', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 350, minHeight: 500 }}
+              style={{
+                ...transitionStyles,
+                resize: 'both',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 350,
+                minHeight: 500,
+              }}
               shadow="xl"
               padding="md"
               radius="md"
@@ -258,10 +314,10 @@ const ChatWidget = ({ characterId }) => {
               maw="90vw"
               mah="90vh"
             >
-              <Card.Section 
-                withBorder 
-                inheritPadding 
-                py="xs" 
+              <Card.Section
+                withBorder
+                inheritPadding
+                py="xs"
                 bg="blue.6"
                 onMouseDown={handleMouseDown}
                 style={{ cursor: 'move' }}
@@ -269,24 +325,65 @@ const ChatWidget = ({ characterId }) => {
                 <Group justify="space-between">
                   <Group>
                     {view === 'chat' && (
-                      <ActionIcon variant="transparent" color="white" onClick={() => setView('list')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style={{ width: 20, height: 20 }}>
-                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      <ActionIcon
+                        variant="transparent"
+                        color="white"
+                        onClick={() => setView('list')}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          style={{ width: 20, height: 20 }}
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </ActionIcon>
                     )}
-                    <Text fw={700} c="white">Lenny Assistant</Text>
+                    <Text fw={700} c="white">
+                      Lenny Assistant
+                    </Text>
                   </Group>
                   <Group gap="xs">
-                    <ActionIcon variant="transparent" color="white" onClick={handleResetPosition} title="Reset Position & Size">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style={{ width: 20, height: 20 }}>
-                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                        </svg>
+                    <ActionIcon
+                      variant="transparent"
+                      color="white"
+                      onClick={handleResetPosition}
+                      title="Reset Position & Size"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        style={{ width: 20, height: 20 }}
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
                     </ActionIcon>
                     <ActionIcon variant="transparent" color="white" onClick={toggleChat}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style={{ width: 20, height: 20 }}>
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        style={{ width: 20, height: 20 }}
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
                     </ActionIcon>
                   </Group>
                 </Group>
@@ -298,32 +395,50 @@ const ChatWidget = ({ characterId }) => {
                 </Stack>
               ) : view === 'list' ? (
                 <Stack h="100%" pt="md">
-                  <Button onClick={createConversation} loading={isLoading}>New Conversation</Button>
+                  <Button onClick={createConversation} loading={isLoading}>
+                    New Conversation
+                  </Button>
                   <ScrollArea flex={1}>
                     <Stack gap="xs">
-                      {conversations.map(conv => (
+                      {conversations.map((conv) => (
                         <Group key={conv.id} wrap="nowrap" align="center">
-                            <UnstyledButton 
-                              onClick={() => loadConversation(conv.id)}
-                              p="sm"
-                              bg="gray.1"
-                              style={{ borderRadius: 8, flex: 1 }}
+                          <UnstyledButton
+                            onClick={() => loadConversation(conv.id)}
+                            p="sm"
+                            bg="gray.1"
+                            style={{ borderRadius: 8, flex: 1 }}
+                          >
+                            <Text fw={500}>{conv.title || `Conversation ${conv.id}`}</Text>
+                            <Text size="xs" c="dimmed">
+                              {new Date(conv.updated_at || conv.created_at).toLocaleString()}
+                            </Text>
+                          </UnstyledButton>
+                          <ActionIcon
+                            color="red"
+                            variant="subtle"
+                            onClick={(e) => confirmDelete(e, conv.id)}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              style={{ width: 20, height: 20 }}
                             >
-                              <Text fw={500}>{conv.title || `Conversation ${conv.id}`}</Text>
-                              <Text size="xs" c="dimmed">{new Date(conv.updated_at || conv.created_at).toLocaleString()}</Text>
-                            </UnstyledButton>
-                            <ActionIcon 
-                                color="red" 
-                                variant="subtle" 
-                                onClick={(e) => confirmDelete(e, conv.id)}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style={{ width: 20, height: 20 }}>
-                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                            </ActionIcon>
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </ActionIcon>
                         </Group>
                       ))}
-                      {conversations.length === 0 && <Text c="dimmed" ta="center">No conversations yet.</Text>}
+                      {conversations.length === 0 && (
+                        <Text c="dimmed" ta="center">
+                          No conversations yet.
+                        </Text>
+                      )}
                     </Stack>
                   </ScrollArea>
                 </Stack>
@@ -332,7 +447,10 @@ const ChatWidget = ({ characterId }) => {
                   <ScrollArea flex={1} type="always" offsetScrollbars>
                     <Stack gap="xs" pt="md">
                       {messages.map((msg, index) => (
-                        <Group key={index} justify={msg.role === 'user' ? 'flex-end' : 'flex-start'}>
+                        <Group
+                          key={index}
+                          justify={msg.role === 'user' ? 'flex-end' : 'flex-start'}
+                        >
                           <Card
                             padding="xs"
                             radius="md"
@@ -342,10 +460,12 @@ const ChatWidget = ({ characterId }) => {
                             style={{ overflow: 'auto' }}
                           >
                             {msg.role === 'user' ? (
-                              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</Text>
+                              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                                {msg.content}
+                              </Text>
                             ) : (
                               <div style={{ fontSize: '0.9rem' }}>
-                                <ReactMarkdown 
+                                <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={MarkdownComponents}
                                 >

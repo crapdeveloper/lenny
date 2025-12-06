@@ -51,13 +51,12 @@ Tracker = "https://example.com/lenny/issues"
 [project.scripts]
 lenny = "lenny.main:main"
 
-[tool.pdm]
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=23.7.0",
+    "isort>=5.12.0",
+]
 
 [build-system]
 requires = ["pdm-backend>=0.10"]
 build-backend = "pdm.backend"
-
-[dependency-groups]
-dev = [
-    "pdm-backend>=0.10",
-]

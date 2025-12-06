@@ -1,82 +1,96 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
-import axios from 'axios'
-import { Paper, Stack, TextInput, Group, Loader, Text, Badge, ScrollArea, ActionIcon, Box } from '@mantine/core'
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import axios from 'axios';
+import {
+  Paper,
+  Stack,
+  TextInput,
+  Group,
+  Loader,
+  Text,
+  Badge,
+  ScrollArea,
+  ActionIcon,
+  Box,
+} from '@mantine/core';
 
 const LocationBrowser = ({ selectedLocation, onLocationSelect }) => {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const debounceTimer = useRef(null)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const debounceTimer = useRef(null);
 
   // Debounced search
   useEffect(() => {
     if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current)
+      clearTimeout(debounceTimer.current);
     }
 
     if (searchQuery.length < 3) {
-      setResults([])
-      return
+      setResults([]);
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     debounceTimer.current = setTimeout(() => {
-      axios.get(`http://localhost:8000/api/market/locations/search`, { params: { q: searchQuery } })
-        .then(res => {
-          setResults(res.data)
-          setLoading(false)
+      axios
+        .get(`http://localhost:8000/api/market/locations/search`, { params: { q: searchQuery } })
+        .then((res) => {
+          setResults(res.data);
+          setLoading(false);
         })
-        .catch(err => {
-          console.error('Error searching locations:', err)
-          setLoading(false)
-        })
-    }, 300)
+        .catch((err) => {
+          console.error('Error searching locations:', err);
+          setLoading(false);
+        });
+    }, 300);
 
     return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    }
-  }, [searchQuery])
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchQuery]);
 
   const getLocationIcon = (type) => {
     switch (type) {
       case 'region':
-        return '🌍'
+        return '🌍';
       case 'system':
-        return '⭐'
+        return '⭐';
       case 'station':
-        return '🏢'
+        return '🏢';
       default:
-        return '📍'
+        return '📍';
     }
-  }
+  };
 
   const getLocationColor = (type) => {
     switch (type) {
       case 'region':
-        return 'blue'
+        return 'blue';
       case 'system':
-        return 'yellow'
+        return 'yellow';
       case 'station':
-        return 'green'
+        return 'green';
       default:
-        return 'gray'
+        return 'gray';
     }
-  }
+  };
 
   const handleLocationClick = (location) => {
-    onLocationSelect(location)
-    setSearchQuery('')
-    setResults([])
-  }
+    onLocationSelect(location);
+    setSearchQuery('');
+    setResults([]);
+  };
 
   const handleClear = () => {
-    onLocationSelect(null)
-  }
+    onLocationSelect(null);
+  };
 
   return (
     <Paper shadow="xs" p="md" radius="md">
       <Stack gap="sm">
-        <Text fw={600} size="sm">Location</Text>
+        <Text fw={600} size="sm">
+          Location
+        </Text>
 
         {/* Active Filter Display */}
         {selectedLocation ? (
@@ -102,7 +116,9 @@ const LocationBrowser = ({ selectedLocation, onLocationSelect }) => {
             </Badge>
           </Group>
         ) : (
-          <Text size="xs" c="dimmed">All Regions</Text>
+          <Text size="xs" c="dimmed">
+            All Regions
+          </Text>
         )}
 
         {/* Search Input */}
@@ -133,24 +149,32 @@ const LocationBrowser = ({ selectedLocation, onLocationSelect }) => {
                       cursor: 'pointer',
                       borderRadius: 4,
                       backgroundColor: 'rgba(0, 0, 0, 0.03)',
-                      transition: 'background-color 0.2s'
+                      transition: 'background-color 0.2s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.08)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.03)'}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.08)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.03)')
+                    }
                   >
                     <Text size="xs">{getLocationIcon(location.type)}</Text>
-                    <Text size="xs" fw={500} truncate style={{ flex: 1, minWidth: 0 }}>{location.name}</Text>
+                    <Text size="xs" fw={500} truncate style={{ flex: 1, minWidth: 0 }}>
+                      {location.name}
+                    </Text>
                   </Group>
                 ))}
               </Stack>
             ) : (
-              <Text size="sm" c="dimmed" p="xs" ta="center">No locations found</Text>
+              <Text size="sm" c="dimmed" p="xs" ta="center">
+                No locations found
+              </Text>
             )}
           </ScrollArea>
         )}
       </Stack>
     </Paper>
-  )
-}
+  );
+};
 
-export default LocationBrowser
+export default LocationBrowser;

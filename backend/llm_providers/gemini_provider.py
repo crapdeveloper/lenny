@@ -2,8 +2,11 @@
 
 import json
 from typing import Any, Dict, List, Optional
+
 import google.generativeai as genai
+
 import mcp.types as types
+
 from .base import LLMProvider
 
 
@@ -12,7 +15,7 @@ class GeminiProvider(LLMProvider):
 
     def __init__(self, api_key: str):
         """Initialize Gemini provider.
-        
+
         Args:
             api_key: Google Gemini API key
         """
@@ -63,11 +66,13 @@ class GeminiProvider(LLMProvider):
             role = msg["role"]
             if role == "assistant":
                 role = "model"
-            
-            gemini_messages.append({
-                "role": role,
-                "parts": [{"text": msg["content"]}],
-            })
+
+            gemini_messages.append(
+                {
+                    "role": role,
+                    "parts": [{"text": msg["content"]}],
+                }
+            )
 
         # Call Gemini
         client = genai.GenerativeModel(model, tools=gemini_tools)
@@ -77,14 +82,16 @@ class GeminiProvider(LLMProvider):
         if response.candidates and response.candidates[0].content.parts:
             parts = response.candidates[0].content.parts
             tool_calls = []
-            
+
             for part in parts:
                 if part.function_call:
-                    tool_calls.append({
-                        "id": part.function_call.name,  # Using name as ID
-                        "name": part.function_call.name,
-                        "arguments": {k: v for k, v in part.function_call.args.items()},
-                    })
+                    tool_calls.append(
+                        {
+                            "id": part.function_call.name,  # Using name as ID
+                            "name": part.function_call.name,
+                            "arguments": {k: v for k, v in part.function_call.args.items()},
+                        }
+                    )
 
             if tool_calls:
                 return {
@@ -116,10 +123,12 @@ class GeminiProvider(LLMProvider):
             await self.initialize()
 
         # Add tool result to messages
-        messages.append({
-            "role": "user",
-            "content": f"Tool {tool_name} returned: {tool_result}",
-        })
+        messages.append(
+            {
+                "role": "user",
+                "content": f"Tool {tool_name} returned: {tool_result}",
+            }
+        )
 
         # Convert messages to Gemini format
         gemini_messages = []
@@ -128,18 +137,18 @@ class GeminiProvider(LLMProvider):
             if role == "assistant":
                 role = "model"
 
-            gemini_messages.append({
-                "role": role,
-                "parts": [{"text": msg.get("content", "")}],
-            })
+            gemini_messages.append(
+                {
+                    "role": role,
+                    "parts": [{"text": msg.get("content", "")}],
+                }
+            )
 
         # Get final response
         client = genai.GenerativeModel(model)
         response = client.generate_content(gemini_messages)
 
-        return {
-            "content": response.text if response.text else ""
-        }
+        return {"content": response.text if response.text else ""}
 
     async def generate_title(
         self,
@@ -157,20 +166,28 @@ class GeminiProvider(LLMProvider):
             content = msg.get("content", "")
             if not content:
                 continue
-                
+
             role = msg["role"]
             if role == "assistant":
                 role = "model"
-            
-            gemini_messages.append({
-                "role": role,
-                "parts": [{"text": content}],
-            })
-        
-        gemini_messages.append({
-            "role": "user",
-            "parts": [{"text": "Summarize this conversation in 20 words or less for a title. Do not use quotes."}]
-        })
+
+            gemini_messages.append(
+                {
+                    "role": role,
+                    "parts": [{"text": content}],
+                }
+            )
+
+        gemini_messages.append(
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "Summarize this conversation in 20 words or less for a title. Do not use quotes."
+                    }
+                ],
+            }
+        )
 
         client = genai.GenerativeModel(model)
         response = client.generate_content(gemini_messages)

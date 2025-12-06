@@ -2,8 +2,11 @@
 
 import json
 from typing import Any, Dict, List, Optional
+
 from openai import AsyncOpenAI
+
 import mcp.types as types
+
 from .base import LLMProvider
 
 
@@ -12,7 +15,7 @@ class OpenAIProvider(LLMProvider):
 
     def __init__(self, api_key: str):
         """Initialize OpenAI provider.
-        
+
         Args:
             api_key: OpenAI API key
         """
@@ -36,14 +39,16 @@ class OpenAIProvider(LLMProvider):
         # Convert MCP tools to OpenAI format
         openai_tools = []
         for tool in tools:
-            openai_tools.append({
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.inputSchema,
-                },
-            })
+            openai_tools.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.inputSchema,
+                    },
+                }
+            )
 
         # Call OpenAI
         response = await self.client.chat.completions.create(
@@ -88,12 +93,14 @@ class OpenAIProvider(LLMProvider):
             await self.initialize()
 
         # Add tool result to messages
-        messages.append({
-            "tool_call_id": tool_call_id,
-            "role": "tool",
-            "name": tool_name,
-            "content": tool_result,
-        })
+        messages.append(
+            {
+                "tool_call_id": tool_call_id,
+                "role": "tool",
+                "name": tool_name,
+                "content": tool_result,
+            }
+        )
 
         # Get final response
         response = await self.client.chat.completions.create(
@@ -101,9 +108,7 @@ class OpenAIProvider(LLMProvider):
             messages=messages,
         )
 
-        return {
-            "content": response.choices[0].message.content
-        }
+        return {"content": response.choices[0].message.content}
 
     async def generate_title(
         self,
@@ -117,10 +122,12 @@ class OpenAIProvider(LLMProvider):
         # Create a prompt for title generation
         # Filter out messages with empty content to avoid API errors
         title_messages = [m for m in messages if m.get("content")]
-        title_messages.append({
-            "role": "user",
-            "content": "Summarize this conversation in 20 words or less for a title. Do not use quotes."
-        })
+        title_messages.append(
+            {
+                "role": "user",
+                "content": "Summarize this conversation in 20 words or less for a title. Do not use quotes.",
+            }
+        )
 
         response = await self.client.chat.completions.create(
             model=model,

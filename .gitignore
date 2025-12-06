@@ -11,3 +11,5 @@ postgres_data/
 .env
 .devcontainer-initialized
 .DS_Store
+.bz2
+.db

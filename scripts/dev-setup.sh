@@ -225,13 +225,3 @@ echo "Services will be available at:"
 		echo "  • Backend:  http://localhost:8000"
 		echo "  • API Docs: http://localhost:8000/docs"
 		echo "  • Aspire:   http://localhost:18888"
-
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Starting infrastructure services (db, redis, aspire-dashboard)..."
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-docker compose -f .devcontainer/docker-compose.yml up -d db redis aspire-dashboard
-echo "✅ Infrastructure services started!"
-echo ""
-echo "Run 'just run-all' or 'docker compose up -d' to start all app services."
-echo ""

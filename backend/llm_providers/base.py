@@ -3,12 +3,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+
 import mcp.types as types
 
 
 @dataclass
 class ToolParameter:
     """Represents a parameter for a tool."""
+
     name: str
     type: str  # "string", "integer", "number", "boolean", "object", "array"
     description: str
@@ -33,12 +35,12 @@ class LLMProvider(ABC):
     ) -> Dict[str, Any]:
         """
         Send a chat message with available tools.
-        
+
         Args:
             messages: List of message dicts with "role" and "content"
             tools: List of MCP Tool objects
             model: Model identifier
-            
+
         Returns:
             Dict with response data including:
             - content: Final response text
@@ -57,14 +59,14 @@ class LLMProvider(ABC):
     ) -> Dict[str, Any]:
         """
         Process the result from a tool execution and get the final response.
-        
+
         Args:
             messages: Conversation history
             tool_call_id: ID of the tool call
             tool_name: Name of the tool that was executed
             tool_result: Result from tool execution
             model: Model identifier
-            
+
         Returns:
             Dict with response data including:
             - content: Final response text
@@ -79,11 +81,11 @@ class LLMProvider(ABC):
     ) -> str:
         """
         Generate a concise title for the conversation.
-        
+
         Args:
             messages: Conversation history
             model: Model identifier
-            
+
         Returns:
             Generated title string
         """

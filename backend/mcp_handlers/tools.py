@@ -1,3 +1,5 @@
+from collections import deque
+
 from sqlalchemy import Float, and_, cast, desc, func, inspect, select, text
 
 from backend.database import AsyncSessionLocal, sync_engine
@@ -28,8 +30,8 @@ SCHEMA_DESCRIPTIONS = {
             "mass": "Mass of the item in kg.",
             "capacity": "Capacity of the item in m3 (if applicable, e.g., ships, containers).",
             "description": "Description of the type.",
-            "market_group_id": "ID of the market group this type belongs to (if published on market)."
-        }
+            "market_group_id": "ID of the market group this type belongs to (if published on market).",
+        },
     },
     "sde_market_groups": {
         "description": "Static Data Export (SDE) table containing market groups (categories) for items.",
@@ -38,15 +40,15 @@ SCHEMA_DESCRIPTIONS = {
             "parent_group_id": "ID of the parent market group (for hierarchy).",
             "name": "Name of the market group.",
             "description": "Description of the market group.",
-            "has_types": "Boolean indicating if this group directly contains types."
-        }
+            "has_types": "Boolean indicating if this group directly contains types.",
+        },
     },
     "sde_regions": {
         "description": "Static Data Export (SDE) table containing all regions in the EVE universe.",
         "columns": {
             "region_id": "Unique identifier for the region.",
-            "name": "Name of the region."
-        }
+            "name": "Name of the region.",
+        },
     },
     "sde_solar_systems": {
         "description": "Static Data Export (SDE) table containing all solar systems.",
@@ -54,23 +56,23 @@ SCHEMA_DESCRIPTIONS = {
             "system_id": "Unique identifier for the solar system.",
             "region_id": "ID of the region this system belongs to.",
             "name": "Name of the solar system.",
-            "security": "Security status of the solar system (0.0 to 1.0)."
-        }
+            "security": "Security status of the solar system (0.0 to 1.0).",
+        },
     },
     "sde_solar_system_jumps": {
         "description": "Static Data Export (SDE) table defining connections (stargates) between solar systems.",
         "columns": {
             "from_solar_system_id": "ID of the origin solar system.",
-            "to_solar_system_id": "ID of the destination solar system."
-        }
+            "to_solar_system_id": "ID of the destination solar system.",
+        },
     },
     "sde_stations": {
         "description": "Static Data Export (SDE) table containing NPC stations.",
         "columns": {
             "station_id": "Unique identifier for the station.",
             "solar_system_id": "ID of the solar system where the station is located.",
-            "name": "Name of the station."
-        }
+            "name": "Name of the station.",
+        },
     },
     "market_orders": {
         "description": "Live market orders fetched from ESI.",
@@ -86,8 +88,8 @@ SCHEMA_DESCRIPTIONS = {
             "min_volume": "Minimum volume required for the order (usually 1).",
             "range": "Range of the order (e.g., 'region', 'station', 'solarsystem').",
             "location_id": "ID of the location (station or structure) where the order is.",
-            "updated_at": "Timestamp when this record was last updated in the local database."
-        }
+            "updated_at": "Timestamp when this record was last updated in the local database.",
+        },
     },
     "market_history": {
         "description": "Historical market data (daily statistics) for items in regions.",
@@ -100,10 +102,11 @@ SCHEMA_DESCRIPTIONS = {
             "highest": "Highest price for the day.",
             "lowest": "Lowest price for the day.",
             "order_count": "Number of orders executed that day.",
-            "volume": "Total volume traded that day."
-        }
-    }
+            "volume": "Total volume traded that day.",
+        },
+    },
 }
+
 
 def inspect_database_schema():
     """
@@ -121,20 +124,23 @@ def inspect_database_schema():
             col_name = column["name"]
             col_desc = table_desc.get("columns", {}).get(col_name, "")
 
-            columns.append({
-                "name": col_name,
-                "type": str(column["type"]),
-                "nullable": column["nullable"],
-                "primary_key": column.get("primary_key", False),
-                "description": col_desc
-            })
+            columns.append(
+                {
+                    "name": col_name,
+                    "type": str(column["type"]),
+                    "nullable": column["nullable"],
+                    "primary_key": column.get("primary_key", False),
+                    "description": col_desc,
+                }
+            )
 
         schema_info[table_name] = {
             "description": table_desc.get("description", ""),
-            "columns": columns
+            "columns": columns,
         }
 
     return schema_info
+
 
 async def run_sql_query(query: str):
     """Execute a raw SQL query."""
@@ -156,6 +162,7 @@ async def run_sql_query(query: str):
         except Exception as e:
             return {"error": str(e)}
 
+
 async def list_regions():
     """List all available regions in the database."""
     async with AsyncSessionLocal() as session:
@@ -163,19 +170,22 @@ async def list_regions():
         regions = result.scalars().all()
         return [{"region_id": r.region_id, "name": r.name} for r in regions]
 
+
 async def search_types(name: str, limit: int = 250):
     """Search for item types by name."""
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(SdeType).where(SdeType.name.ilike(f"%{name}%")).limit(limit))
+        result = await session.execute(
+            select(SdeType).where(SdeType.name.ilike(f"%{name}%")).limit(limit)
+        )
         types = result.scalars().all()
         return [{"type_id": t.type_id, "name": t.name, "group_id": t.group_id} for t in types]
+
 
 async def get_market_orders(region_id: int, type_id: int, is_buy_order: bool = None):
     """Get market orders for a specific region and type."""
     async with AsyncSessionLocal() as session:
         query = select(MarketOrder).where(
-            MarketOrder.region_id == region_id,
-            MarketOrder.type_id == type_id
+            MarketOrder.region_id == region_id, MarketOrder.type_id == type_id
         )
         if is_buy_order is not None:
             query = query.where(MarketOrder.is_buy_order == (1 if is_buy_order else 0))
@@ -189,18 +199,19 @@ async def get_market_orders(region_id: int, type_id: int, is_buy_order: bool = N
                 "volume_remain": o.volume_remain,
                 "is_buy_order": bool(o.is_buy_order),
                 "location_id": o.location_id,
-                "issued": o.issued.isoformat() if o.issued else None
+                "issued": o.issued.isoformat() if o.issued else None,
             }
             for o in orders
         ]
 
+
 async def get_top_orders(region_id: int, limit: int = 10, is_buy_order: bool = None):
     """Get top market orders by price for a specific region."""
     async with AsyncSessionLocal() as session:
-        query = select(MarketOrder, SdeType.name).join(
-            SdeType, MarketOrder.type_id == SdeType.type_id
-        ).where(
-            MarketOrder.region_id == region_id
+        query = (
+            select(MarketOrder, SdeType.name)
+            .join(SdeType, MarketOrder.type_id == SdeType.type_id)
+            .where(MarketOrder.region_id == region_id)
         )
 
         if is_buy_order is not None:
@@ -220,10 +231,11 @@ async def get_top_orders(region_id: int, limit: int = 10, is_buy_order: bool = N
                 "volume_remain": o.volume_remain,
                 "is_buy_order": bool(o.is_buy_order),
                 "location_id": o.location_id,
-                "issued": o.issued.isoformat() if o.issued else None
+                "issued": o.issued.isoformat() if o.issued else None,
             }
             for o, type_name in rows
         ]
+
 
 async def find_trade_routes(start_system_name: str, max_jumps: int, budget: float, limit: int = 5):
     """
@@ -231,7 +243,9 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
     """
     async with AsyncSessionLocal() as session:
         # 1. Resolve Start System
-        result = await session.execute(select(SdeSolarSystem).where(SdeSolarSystem.name == start_system_name))
+        result = await session.execute(
+            select(SdeSolarSystem).where(SdeSolarSystem.name == start_system_name)
+        )
         start_system = result.scalars().first()
         if not start_system:
             return {"error": f"System '{start_system_name}' not found."}
@@ -242,17 +256,20 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
         # This is a simplified in-memory BFS. For production, use a graph DB or recursive CTE.
         # We need to fetch all jumps first or do iterative queries. Iterative is slower but safer for memory.
         # Let's fetch all jumps once (it's not that big, ~10k rows)
-        jumps_result = await session.execute(select(SdeSolarSystemJump.from_solar_system_id, SdeSolarSystemJump.to_solar_system_id))
+        jumps_result = await session.execute(
+            select(SdeSolarSystemJump.from_solar_system_id, SdeSolarSystemJump.to_solar_system_id)
+        )
         all_jumps = jumps_result.all()
 
         adj = {}
         for from_sys, to_sys in all_jumps:
-            if from_sys not in adj: adj[from_sys] = []
+            if from_sys not in adj:
+                adj[from_sys] = []
             adj[from_sys].append(to_sys)
 
         # BFS
         visited = {start_system_id: 0}
-        queue = [start_system_id]
+        queue = deque([start_system_id])
         valid_systems = {start_system_id}
 
         while queue:
@@ -282,46 +299,53 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
         # We assume the user buys from the cheapest sell order in the current system.
 
         # Step 3a: Get Sell Orders in Start System
-        sell_orders_query = select(
-            MarketOrder.type_id,
-            MarketOrder.price,
-            MarketOrder.volume_remain
-        ).join(
-            SdeStation, MarketOrder.location_id == SdeStation.station_id
-        ).where(
-            SdeStation.solar_system_id == start_system_id,
-            MarketOrder.is_buy_order == 0 # Selling to us
+        sell_orders_query = (
+            select(MarketOrder.type_id, MarketOrder.price, MarketOrder.volume_remain)
+            .join(SdeStation, MarketOrder.location_id == SdeStation.station_id)
+            .where(
+                SdeStation.solar_system_id == start_system_id,
+                MarketOrder.is_buy_order == 0,  # Selling to us
+            )
         )
 
         sell_orders_res = await session.execute(sell_orders_query)
         sell_orders = sell_orders_res.all()
 
         # Group by Type to find min price
-        best_sell_prices = {} # type_id -> {price, volume}
+        best_sell_prices = {}  # type_id -> {price, volume}
         for type_id, price_str, vol in sell_orders:
             price = float(price_str)
-            if type_id not in best_sell_prices or price < best_sell_prices[type_id]['price']:
-                best_sell_prices[type_id] = {'price': price, 'volume': vol}
+            if type_id not in best_sell_prices or price < best_sell_prices[type_id]["price"]:
+                best_sell_prices[type_id] = {"price": price, "volume": vol}
 
         if not best_sell_prices:
-             return {"error": "No sell orders found in start system."}
+            return {"error": "No sell orders found in start system."}
 
         # Step 3b: Get Buy Orders in Range Systems
-        buy_orders_query = select(
-            MarketOrder.type_id,
-            MarketOrder.price,
-            MarketOrder.volume_remain,
-            SdeStation.solar_system_id,
-            SdeStation.name
-        ).join(
-            SdeStation, MarketOrder.location_id == SdeStation.station_id
-        ).where(
-            SdeStation.solar_system_id.in_(valid_system_ids),
-            MarketOrder.is_buy_order == 1 # Buying from us
+        buy_orders_query = (
+            select(
+                MarketOrder.type_id,
+                MarketOrder.price,
+                MarketOrder.volume_remain,
+                SdeStation.solar_system_id,
+                SdeStation.name,
+            )
+            .join(SdeStation, MarketOrder.location_id == SdeStation.station_id)
+            .where(
+                SdeStation.solar_system_id.in_(valid_system_ids),
+                MarketOrder.is_buy_order == 1,  # Buying from us
+            )
         )
 
         buy_orders_res = await session.execute(buy_orders_query)
         buy_orders = buy_orders_res.all()
+
+        # Step 3c: Get all relevant type names in one query to avoid N+1 problem
+        all_type_ids = list(best_sell_prices.keys())
+        type_names_res = await session.execute(
+            select(SdeType.type_id, SdeType.name).where(SdeType.type_id.in_(all_type_ids))
+        )
+        type_name_map = {type_id: name for type_id, name in type_names_res}
 
         opportunities = []
 
@@ -331,14 +355,14 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
 
             buy_price = float(price_str)
             sell_info = best_sell_prices[type_id]
-            sell_price = sell_info['price']
+            sell_price = sell_info["price"]
 
             if buy_price <= sell_price:
                 continue
 
             # Calculate Profit
             margin = buy_price - sell_price
-            tradeable_vol = min(vol, sell_info['volume'])
+            tradeable_vol = min(vol, sell_info["volume"])
 
             # Check Budget
             total_cost = sell_price * tradeable_vol
@@ -352,26 +376,25 @@ async def find_trade_routes(start_system_name: str, max_jumps: int, budget: floa
 
             total_profit = margin * tradeable_vol
 
-            # Get Type Name
-            type_res = await session.execute(select(SdeType.name).where(SdeType.type_id == type_id))
-            type_name = type_res.scalar()
-
-            opportunities.append({
-                "item": type_name,
-                "buy_from": start_system_name,
-                "sell_to": station_name,
-                "buy_price": sell_price,
-                "sell_price": buy_price,
-                "quantity": tradeable_vol,
-                "total_cost": total_cost,
-                "total_profit": total_profit,
-                "jumps": visited[sys_id]
-            })
+            opportunities.append(
+                {
+                    "item": type_name_map.get(type_id, "Unknown Item"),
+                    "buy_from": start_system_name,
+                    "sell_to": station_name,
+                    "buy_price": sell_price,
+                    "sell_price": buy_price,
+                    "quantity": tradeable_vol,
+                    "total_cost": total_cost,
+                    "total_profit": total_profit,
+                    "jumps": visited[sys_id],
+                }
+            )
 
         # Sort by profit
-        opportunities.sort(key=lambda x: x['total_profit'], reverse=True)
+        opportunities.sort(key=lambda x: x["total_profit"], reverse=True)
 
         return opportunities[:limit]
+
 
 async def call_esi(operation_id: str, params: dict = None):
     """
@@ -399,7 +422,9 @@ async def call_esi(operation_id: str, params: dict = None):
             # Create an async DB session to refresh tokens if needed
             async with AsyncSessionLocal() as session:
                 try:
-                    result = await session.execute(select(User).filter(User.character_id == int(char_id)))
+                    result = await session.execute(
+                        select(User).filter(User.character_id == int(char_id))
+                    )
                     user = result.scalars().first()
                 except Exception:
                     user = None
@@ -418,7 +443,9 @@ async def call_esi(operation_id: str, params: dict = None):
             # Try to refresh tokens and retry once
             async with AsyncSessionLocal() as session:
                 try:
-                    result = await session.execute(select(User).filter(User.character_id == int(char_id)))
+                    result = await session.execute(
+                        select(User).filter(User.character_id == int(char_id))
+                    )
                     user = result.scalars().first()
                 except Exception:
                     user = None
@@ -434,13 +461,13 @@ async def call_esi(operation_id: str, params: dict = None):
 
             # Helper to convert Bravado models to dicts
             def serialize(obj):
-                if hasattr(obj, 'to_dict'):
+                if hasattr(obj, "to_dict"):
                     # to_dict() might return datetime objects, which json.dumps can't handle by default
                     # We'll let the caller (server.py) handle JSON serialization with a custom encoder if needed
                     # or convert datetimes here.
                     d = obj.to_dict()
                     for k, v in d.items():
-                        if hasattr(v, 'isoformat'):
+                        if hasattr(v, "isoformat"):
                             d[k] = v.isoformat()
                     return d
                 return obj
@@ -455,19 +482,26 @@ async def call_esi(operation_id: str, params: dict = None):
     except Exception as e:
         return {"error": f"ESI Request failed: {str(e)}"}
 
-async def get_route(origin_name: str, destination_name: str, preference: str = "shortest", security: object = None):
+
+async def get_route(
+    origin_name: str, destination_name: str, preference: str = "shortest", security: object = None
+):
     """
     Get the route between two systems using ESI.
     """
     async with AsyncSessionLocal() as session:
         # Resolve Origin
-        res_origin = await session.execute(select(SdeSolarSystem).where(SdeSolarSystem.name == origin_name))
+        res_origin = await session.execute(
+            select(SdeSolarSystem).where(SdeSolarSystem.name == origin_name)
+        )
         origin_sys = res_origin.scalars().first()
         if not origin_sys:
             return {"error": f"Origin system '{origin_name}' not found."}
 
         # Resolve Destination
-        res_dest = await session.execute(select(SdeSolarSystem).where(SdeSolarSystem.name == destination_name))
+        res_dest = await session.execute(
+            select(SdeSolarSystem).where(SdeSolarSystem.name == destination_name)
+        )
         dest_sys = res_dest.scalars().first()
         if not dest_sys:
             return {"error": f"Destination system '{destination_name}' not found."}
@@ -476,11 +510,7 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
         destination_id = dest_sys.system_id
 
     # Call ESI
-    params = {
-        "origin": origin_id,
-        "destination": destination_id,
-        "flag": preference
-    }
+    params = {"origin": origin_id, "destination": destination_id, "flag": preference}
 
     route_ids = await call_esi("get_route_origin_destination", params)
 
@@ -494,11 +524,13 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
             "jumps": 0,
             "route": [],
             "route_security": [],
-            "route_ok": True
+            "route_ok": True,
         }
     # Fetch system names and security values from local SDE
     async with AsyncSessionLocal() as session:
-        stmt = select(SdeSolarSystem.system_id, SdeSolarSystem.name, SdeSolarSystem.security).where(SdeSolarSystem.system_id.in_(route_ids))
+        stmt = select(SdeSolarSystem.system_id, SdeSolarSystem.name, SdeSolarSystem.security).where(
+            SdeSolarSystem.system_id.in_(route_ids)
+        )
         result = await session.execute(stmt)
         rows = result.all()
 
@@ -534,7 +566,9 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
             if isinstance(security, str):
                 sec_lower = security.lower()
                 if sec_lower not in ("null", "low", "high"):
-                    return {"error": "Invalid security parameter. Allowed strings: 'null','low','high' or numeric 0.0-1.0"}
+                    return {
+                        "error": "Invalid security parameter. Allowed strings: 'null','low','high' or numeric 0.0-1.0"
+                    }
                 security_mode = sec_lower
             else:
                 try:
@@ -543,7 +577,9 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
                         return {"error": "Numeric security threshold must be between 0.0 and 1.0"}
                     security_mode = "threshold"
                 except Exception:
-                    return {"error": "Invalid security parameter. Allowed strings: 'null','low','high' or numeric 0.0-1.0"}
+                    return {
+                        "error": "Invalid security parameter. Allowed strings: 'null','low','high' or numeric 0.0-1.0"
+                    }
 
         for sys_id in route_ids:
             info = system_map.get(sys_id)
@@ -556,7 +592,14 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
 
             cls = classify(sec)
             route_names.append(name)
-            route_security.append({"system_id": sys_id, "name": name, "security": (float(sec) if sec is not None else None), "class": cls})
+            route_security.append(
+                {
+                    "system_id": sys_id,
+                    "name": name,
+                    "security": (float(sec) if sec is not None else None),
+                    "class": cls,
+                }
+            )
 
             # Evaluate filter if requested
             if security_mode is not None:
@@ -576,18 +619,5 @@ async def get_route(origin_name: str, destination_name: str, preference: str = "
             "jumps": len(route_ids),
             "route": route_names,
             "route_security": route_security,
-            "route_ok": route_ok
-        }
-                else:
-                    # string modes
-                    if cls != security_mode:
-                        route_ok = False
-
-        return {
-            "origin": origin_name,
-            "destination": destination_name,
-            "jumps": len(route_ids),
-            "route": route_names,
-            "route_security": route_security,
-            "route_ok": route_ok
+            "route_ok": route_ok,
         }

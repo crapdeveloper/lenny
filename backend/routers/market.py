@@ -12,7 +12,9 @@ from sqlalchemy.future import select
 
 from backend.database import get_db
 from backend.esi_client import esi_app, esi_client
-from backend.models import MarketHistory
+from backend.models import (
+    MarketHistory,
+)
 from backend.models import MarketOrder as MarketOrderModel
 from backend.models import (
     SdeMarketGroup,
